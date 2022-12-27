@@ -5,6 +5,7 @@ from .oxford_pets import OxfordPets
 from .imagenet import ImageNet
 from collections import OrderedDict
 TO_BE_IGNORED = ["README.txt"]
+'''
 imagenet_templates = ["itap of a {}.",
                         "a bad photo of the {}.",
                         "a origami {}.",
@@ -12,6 +13,8 @@ imagenet_templates = ["itap of a {}.",
                         "a {} in a video game.",
                         "art of the {}.",
                         "a photo of the small {}."]
+'''
+imagenet_templates = ['a photo of a {}.']
 
 class ImageNetV2(DatasetBase):
     """ImageNet-A(dversarial).

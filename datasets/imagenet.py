@@ -173,7 +173,7 @@ imagenet_classes = ["tench", "goldfish", "great white shark", "tiger shark", "ha
                         "bridegroom", "scuba diver", "rapeseed", "daisy", "yellow lady's slipper", "corn", "acorn",
                         "rose hip", "horse chestnut seed", "coral fungus", "agaric", "gyromitra", "stinkhorn mushroom",
                         "earth star fungus", "hen of the woods mushroom", "bolete", "corn cob", "toilet paper"]
-
+'''
 imagenet_templates = ["itap of a {}.",
                         "a bad photo of the {}.",
                         "a origami {}.",
@@ -181,6 +181,8 @@ imagenet_templates = ["itap of a {}.",
                         "a {} in a video game.",
                         "art of the {}.",
                         "a photo of the small {}."]
+'''
+imagenet_templates = ['a photo of a {}.']
 
 
 class ImageNet():

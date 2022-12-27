@@ -141,15 +141,15 @@ def main():
     torch.manual_seed(1)
     
     print("Preparing ImageNet dataset.")
-    for shot in [1,5,10,20,50,100]:
+    for shot in [15]:
         cfg['shots'] = shot
         print(cfg['shots'])
         imagenet = ImageNet(cfg['root_path'], cfg['shots'], preprocess)
 
-        test_loader = torch.utils.data.DataLoader(imagenet.test, batch_size=64, num_workers=8, shuffle=False)
+        test_loader = torch.utils.data.DataLoader(imagenet.test, batch_size=50, num_workers=8, shuffle=False)
 
-        train_loader_cache = torch.utils.data.DataLoader(imagenet.train, batch_size=256, num_workers=8, shuffle=False)
-        train_loader_F = torch.utils.data.DataLoader(imagenet.train, batch_size=256, num_workers=8, shuffle=True)
+        train_loader_cache = torch.utils.data.DataLoader(imagenet.train, batch_size=32, num_workers=8, shuffle=False)
+        train_loader_F = torch.utils.data.DataLoader(imagenet.train, batch_size=32, num_workers=8, shuffle=True)
 
         # Textual features
         print("Getting textual features as CLIP's classifier.")

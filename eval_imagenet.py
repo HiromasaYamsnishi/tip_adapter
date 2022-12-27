@@ -121,15 +121,15 @@ def main():
     test_features, test_labels = pre_load_features(cfg, "test", clip_model, test_loader)
     
     shot_num = cfg['shots']
-    for shot_num in [1,5,10,20,50,100]:
+    for shot_num in [1,5,10,20,50]:
     # ------------------------------------------ Tip-Adapter ------------------------------------------
         cache_keys=torch.load(os.path.join(imagenet_cache_dir, f'keys_{shot_num}shots.pt'))
-        cache_values = torch.load(os.path.join(imagenet_cache_dir, f'cache_values_{shot_num}shots.pt'))
+        cache_values = torch.load(os.path.join(imagenet_cache_dir, f'values_{shot_num}shots.pt'))
         run_tip_adapter(cfg, cache_keys, cache_values,test_features, test_labels, clip_weights)
 
         # ------------------------------------------ Tip-Adapter-F ------------------------------------------
         cache_keys=torch.load(os.path.join(imagenet_cache_dir, f'best_F_{shot_num}shots.pt')).T
-        cache_values = torch.load(os.path.join(imagenet_cache_dir, f'cache_values_{shot_num}shots.pt'))
+        cache_values = torch.load(os.path.join(imagenet_cache_dir, f'values_{shot_num}shots.pt'))
         run_tip_adapter_F(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights, clip_model)
            
 
