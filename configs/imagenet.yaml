@@ -1,5 +1,5 @@
 # ------ root_path/dataset_name ------
-root_path: ''
+root_path: '/home/hiyamanishi/nfs/sandbox/yamanishi/'
 
 
 # ------ Load Cache and Features ------
@@ -23,7 +23,7 @@ init_alpha: 1.17
 
 # ------ Basic Config ------
 dataset: 'imagenet'
-shots: 16
+shots: 1
 backbone: 'RN50'
 
 lr: 0.001

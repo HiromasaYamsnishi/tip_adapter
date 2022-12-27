@@ -13,6 +13,7 @@ from datasets import build_dataset
 from datasets.utils import build_data_loader
 import clip
 from utils import *
+import time
 
 
 def get_arguments():
@@ -37,8 +38,10 @@ def run_tip_adapter(cfg, cache_keys, cache_values, val_features, val_labels, tes
     beta, alpha = cfg['init_beta'], cfg['init_alpha']
     
     affinity = val_features @ cache_keys
+    print('affinity', affinity)
     cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
-    
+    print('clip_logits', clip_logits)
+    print('cache_logits', cache_logits)
     tip_logits = clip_logits + cache_logits * alpha
     acc = cls_acc(tip_logits, val_labels)
     print("**** Tip-Adapter's val accuracy: {:.2f}. ****\n".format(acc))
@@ -89,7 +92,15 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values, val_features, val_labels, t
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
             affinity = adapter(image_features)
+            print('affinity', affinity)
+            
             cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
+            print(((-1) * (beta - beta * affinity)).exp())
+            print('cache_values', cache_values)
+            print('cache_logits', cache_logits)
+            print(cache_values.size())
+            print(cache_keys.size())
+            exit()
             clip_logits = 100. * image_features @ clip_weights
             tip_logits = clip_logits + cache_logits * alpha
 
@@ -114,6 +125,8 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values, val_features, val_labels, t
         affinity = adapter(test_features)
         cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
         clip_logits = 100. * test_features @ clip_weights
+        print('cache_logits',cache_logits)
+        print('clip_logits',clip_logits)
         tip_logits = clip_logits + cache_logits * alpha
         acc = cls_acc(tip_logits, test_labels)
 
@@ -122,7 +135,7 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values, val_features, val_labels, t
             best_acc = acc
             best_epoch = train_idx
             torch.save(adapter.weight, cfg['cache_dir'] + "/best_F_" + str(cfg['shots']) + "shots.pt")
-    
+            print(cfg['cache_dir'])
     adapter.weight = torch.load(cfg['cache_dir'] + "/best_F_" + str(cfg['shots']) + "shots.pt")
     print(f"**** After fine-tuning, Tip-Adapter-F's best test accuracy: {best_acc:.2f}, at epoch: {best_epoch}. ****\n")
 
@@ -137,6 +150,8 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values, val_features, val_labels, t
     cache_logits = ((-1) * (best_beta - best_beta * affinity)).exp() @ cache_values
     
     tip_logits = clip_logits + cache_logits * best_alpha
+    print('clip_logits', clip_logits)
+    print('cache_logits', cache_logits)
     acc = cls_acc(tip_logits, test_labels)
     print("**** Tip-Adapter-F's test accuracy: {:.2f}. ****\n".format(max(best_acc, acc)))
 
@@ -167,8 +182,8 @@ def main():
     print("Preparing dataset.")
     dataset = build_dataset(cfg['dataset'], cfg['root_path'], cfg['shots'])
 
-    val_loader = build_data_loader(data_source=dataset.val, batch_size=64, is_train=False, tfm=preprocess, shuffle=False)
-    test_loader = build_data_loader(data_source=dataset.test, batch_size=64, is_train=False, tfm=preprocess, shuffle=False)
+    val_loader = build_data_loader(data_source=dataset.val, batch_size=100, is_train=False, tfm=preprocess, shuffle=False)
+    test_loader = build_data_loader(data_source=dataset.test, batch_size=100, is_train=False, tfm=preprocess, shuffle=False)
 
     train_tranform = transforms.Compose([
         transforms.RandomResizedCrop(size=224, scale=(0.5, 1), interpolation=transforms.InterpolationMode.BICUBIC),
@@ -177,8 +192,8 @@ def main():
         transforms.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
     ])
 
-    train_loader_cache = build_data_loader(data_source=dataset.train_x, batch_size=256, tfm=train_tranform, is_train=True, shuffle=False)
-    train_loader_F = build_data_loader(data_source=dataset.train_x, batch_size=256, tfm=train_tranform, is_train=True, shuffle=True)
+    train_loader_cache = build_data_loader(data_source=dataset.train_x, batch_size=32, tfm=train_tranform, is_train=True, shuffle=False)
+    train_loader_F = build_data_loader(data_source=dataset.train_x, batch_size=32, tfm=train_tranform, is_train=True, shuffle=True)
 
     # Textual features
     print("\nGetting textual features as CLIP's classifier.")
@@ -187,7 +202,8 @@ def main():
     # Construct the cache model by few-shot training set
     print("\nConstructing cache model by few-shot visual features and labels.")
     cache_keys, cache_values = build_cache_model(cfg, clip_model, train_loader_cache)
-
+    print('cache_keys', cache_keys)
+    print('cache_values', cache_values)
     # Pre-load val features
     print("\nLoading visual features and labels from val set.")
     val_features, val_labels = pre_load_features(cfg, "val", clip_model, val_loader)

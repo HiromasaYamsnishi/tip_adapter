@@ -1,0 +1,67 @@
+import os
+
+from .utils import Datum, DatasetBase, read_json, write_json, build_data_loader, listdir_nohidden
+from .oxford_pets import OxfordPets
+from .imagenet import ImageNet
+from collections import OrderedDict
+TO_BE_IGNORED = ["README.txt"]
+imagenet_templates = ["itap of a {}.",
+                        "a bad photo of the {}.",
+                        "a origami {}.",
+                        "a photo of the large {}.",
+                        "a {} in a video game.",
+                        "art of the {}.",
+                        "a photo of the small {}."]
+
+class ImageNetA(DatasetBase):
+    """ImageNet-A(dversarial).
+
+    This dataset is used for testing only.
+    """
+
+    dataset_dir = "imagenet-adversarial"
+
+    def __init__(self, root, num_shots):
+        self.dataset_dir = os.path.join(root, self.dataset_dir)
+        self.image_dir = os.path.join(self.dataset_dir, "imagenet-a")
+
+        text_file = os.path.join(self.dataset_dir, "classnames.txt")
+        classnames = ImageNetA.read_classnames(text_file)
+
+        data = self.read_data(classnames)
+        self.template = imagenet_templates
+
+        super().__init__(train_x=data, test=data)
+
+
+
+    @staticmethod
+    def read_classnames(text_file):
+        """Return a dictionary containing
+        key-value pairs of <folder name>: <class name>.
+        """
+        classnames = OrderedDict()
+        with open(text_file, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                line = line.strip().split(" ")
+                folder = line[0]
+                classname = " ".join(line[1:])
+                classnames[folder] = classname
+        return classnames
+
+    def read_data(self, classnames):
+        image_dir = self.image_dir
+        folders = listdir_nohidden(image_dir, sort=True)
+        folders = [f for f in folders if f not in TO_BE_IGNORED]
+        items = []
+
+        for label, folder in enumerate(folders):
+            imnames = listdir_nohidden(os.path.join(image_dir, folder))
+            classname = classnames[folder]
+            for imname in imnames:
+                impath = os.path.join(image_dir, folder, imname)
+                item = Datum(impath=impath, label=label, classname=classname)
+                items.append(item)
+
+        return items

@@ -38,7 +38,10 @@ def run_tip_adapter(cfg, cache_keys, cache_values, test_features, test_labels, c
     tip_logits = clip_logits + cache_logits * alpha
     acc = cls_acc(tip_logits, test_labels)
     print("**** Tip-Adapter's test accuracy: {:.2f}. ****\n".format(acc))
-
+    with open('tip_imagenet.txt', 'w') as f:
+        f.write(str(cfg['shots']))
+        f.write(' ')
+        f.write(str(acc))
     # Search Hyperparameters
     _ = search_hp(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights)
 
@@ -105,10 +108,14 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values, test_features, test_labels,
     
     adapter.weight = torch.load(cfg['cache_dir'] + "/best_F_" + str(cfg['shots']) + "shots.pt")
     print(f"**** After fine-tuning, Tip-Adapter-F's best test accuracy: {best_acc:.2f}, at epoch: {best_epoch}. ****\n")
-
+    with open('tipf_imagenet.txt', 'w') as f:
+        f.write(str(cfg['shots']))
+        f.write(' ')
+        f.write(str(acc))
     # Search Hyperparameters
-    _ = search_hp(cfg, affinity, cache_values, test_features, test_labels, clip_weights, adapter=adapter)
-
+    best_beta, best_alpha = search_hp(cfg, affinity, cache_values, test_features, test_labels, clip_weights, adapter=adapter)
+    torch.save(torch.tensor(best_beta), cfg['cache_dir'] + "/best_beta_" + str(cfg['shots']) + "shots.pt")
+    torch.save(torch.tensor(best_alpha), cfg['cache_dir'] + "/best_alpha_" + str(cfg['shots']) + "shots.pt")
 
 def main():
 
@@ -134,30 +141,33 @@ def main():
     torch.manual_seed(1)
     
     print("Preparing ImageNet dataset.")
-    imagenet = ImageNet(cfg['root_path'], cfg['shots'], preprocess)
+    for shot in [1,5,10,20,50,100]:
+        cfg['shots'] = shot
+        print(cfg['shots'])
+        imagenet = ImageNet(cfg['root_path'], cfg['shots'], preprocess)
 
-    test_loader = torch.utils.data.DataLoader(imagenet.test, batch_size=64, num_workers=8, shuffle=False)
+        test_loader = torch.utils.data.DataLoader(imagenet.test, batch_size=64, num_workers=8, shuffle=False)
 
-    train_loader_cache = torch.utils.data.DataLoader(imagenet.train, batch_size=256, num_workers=8, shuffle=False)
-    train_loader_F = torch.utils.data.DataLoader(imagenet.train, batch_size=256, num_workers=8, shuffle=True)
+        train_loader_cache = torch.utils.data.DataLoader(imagenet.train, batch_size=256, num_workers=8, shuffle=False)
+        train_loader_F = torch.utils.data.DataLoader(imagenet.train, batch_size=256, num_workers=8, shuffle=True)
 
-    # Textual features
-    print("Getting textual features as CLIP's classifier.")
-    clip_weights = clip_classifier(imagenet.classnames, imagenet.template, clip_model)
+        # Textual features
+        print("Getting textual features as CLIP's classifier.")
+        clip_weights = clip_classifier(imagenet.classnames, imagenet.template, clip_model)
 
-    # Construct the cache model by few-shot training set
-    print("\nConstructing cache model by few-shot visual features and labels.")
-    cache_keys, cache_values = build_cache_model(cfg, clip_model, train_loader_cache)
+        # Construct the cache model by few-shot training set
+        print("\nConstructing cache model by few-shot visual features and labels.")
+        cache_keys, cache_values = build_cache_model(cfg, clip_model, train_loader_cache)
 
-    # Pre-load test features
-    print("\nLoading visual features and labels from test set.")
-    test_features, test_labels = pre_load_features(cfg, "test", clip_model, test_loader)
+        # Pre-load test features
+        print("\nLoading visual features and labels from test set.")
+        test_features, test_labels = pre_load_features(cfg, "test", clip_model, test_loader)
 
-    # ------------------------------------------ Tip-Adapter ------------------------------------------
-    run_tip_adapter(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights)
+        # ------------------------------------------ Tip-Adapter ------------------------------------------
+        run_tip_adapter(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights)
 
-    # ------------------------------------------ Tip-Adapter-F ------------------------------------------
-    run_tip_adapter_F(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights, clip_model, train_loader_F)
+        # ------------------------------------------ Tip-Adapter-F ------------------------------------------
+        run_tip_adapter_F(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights, clip_model, train_loader_F)
            
 
 if __name__ == '__main__':

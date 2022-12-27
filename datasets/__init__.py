@@ -8,6 +8,8 @@ from .fgvc import FGVCAircraft
 from .food101 import Food101
 from .oxford_flowers import OxfordFlowers
 from .stanford_cars import StanfordCars
+from .imagenet_a import ImageNetA
+from .imagenetv2 import ImageNetV2
 
 
 dataset_list = {
@@ -21,6 +23,8 @@ dataset_list = {
                 "food101": Food101,
                 "oxford_flowers": OxfordFlowers,
                 "stanford_cars": StanfordCars,
+                "imagenet_a":ImageNetA,
+                "imagenetv2": ImageNetV2
                 }
 
 
