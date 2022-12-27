@@ -15,6 +15,7 @@ import clip
 from utils import *
 import time
 
+imagenet_cache_dir = '/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/'
 
 def get_arguments():
 
@@ -27,8 +28,9 @@ def get_arguments():
 
 def run_tip_adapter(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights):
     # Search Hyperparameters
-    best_beta = torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/best_beta_1shots.pt').item() 
-    best_alpha = torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/best_alpha_1shots.pt').item()
+    shot_num = cfg['shots']
+    best_beta = torch.load(os.path.join(imagenet_cache_dir, f'best_beta_{shot_num}shots.pt')).item() 
+    best_alpha = torch.load(os.path.join(imagenet_cache_dir, f'best_alpha_{shot_num}shots.pt')).item()
 
 
     print("\n-------- Evaluating on the test set. --------")
@@ -47,7 +49,7 @@ def run_tip_adapter(cfg, cache_keys, cache_values, test_features, test_labels, c
     tip_logits = clip_logits + cache_logits * best_alpha
     acc = cls_acc(tip_logits, test_labels)
     print("**** Tip-Adapter's test accuracy: {:.2f}. ****\n".format(acc))
-    with open('tip_imagenetv2.txt', 'w') as f:
+    with open('tip_imagenetv2.txt', 'a') as f:
         f.write(str(cfg['shots']))
         f.write(' ')
         f.write(str(acc))
@@ -58,9 +60,9 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values,test_features, test_labels, 
     # Enable the cached keys to be learnable
     adapter = nn.Linear(cache_keys.shape[0], cache_keys.shape[1], bias=False).to(clip_model.dtype).cuda()
     adapter.weight = nn.Parameter(cache_keys.t())
-    
-    best_beta = torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/best_beta_1shots.pt').item() 
-    best_alpha = torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/best_alpha_1shots.pt').item()
+    shot_num = cfg['shots']
+    best_beta = torch.load(os.path.join(imagenet_cache_dir, f'best_beta_{shot_num}shots.pt')).item() 
+    best_alpha = torch.load(os.path.join(imagenet_cache_dir, f'best_alpha_{shot_num}shots.pt')).item()
         # Eval
     adapter.eval()
     clip_logits = 100. * test_features @ clip_weights
@@ -71,7 +73,7 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values,test_features, test_labels, 
     tip_logits = clip_logits + cache_logits * best_alpha
     acc = cls_acc(tip_logits, test_labels)
     print("**** Tip-AdapterF's test accuracy: {:.2f}. ****\n".format(acc))
-    with open('tipf_imagenetv2.txt', 'w') as f:
+    with open('tipf_imagenetv2.txt', 'a') as f:
         f.write(str(cfg['shots']))
         f.write(' ')
         f.write(str(acc))
@@ -112,23 +114,21 @@ def main():
     clip_weights = clip_classifier(dataset.classnames, dataset.template, clip_model)
 
     # Construct the cache model by few-shot training set
-    print("\nConstructing cache model by few-shot visual features and labels.")
-    cache_keys=torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/best_F_1shots.pt')
-    cache_values = torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/cache_values_1shots.pt')
     # Pre-load val features
     #print("\nLoading visual features and labels from val set.")
     # Pre-load test features
     print("\nLoading visual features and labels from test set.")
     test_features, test_labels = pre_load_features(cfg, "test", clip_model, test_loader)
-
+    
+    shot_num = cfg['shots']
     # ------------------------------------------ Tip-Adapter ------------------------------------------
-    cache_keys=torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/keys_1shots.pt')
-    cache_values = torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/cache_values_1shots.pt')
+    cache_keys=torch.load(os.path.join(imagenet_cache_dir, f'keys_{shot_num}shots.pt'))
+    cache_values = torch.load(os.path.join(imagenet_cache_dir, f'cache_values_{shot_num}shots.pt'))
     run_tip_adapter(cfg, cache_keys, cache_values,test_features, test_labels, clip_weights)
 
     # ------------------------------------------ Tip-Adapter-F ------------------------------------------
-    cache_keys=torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/best_F_1shots.pt').T
-    cache_values = torch.load('/home/hiyamanishi/CoOp/Tip-Adapter/caches/imagenet/cache_values_1shots.pt')
+    cache_keys=torch.load(os.path.join(imagenet_cache_dir, f'best_F_{shot_num}shots.pt')).T
+    cache_values = torch.load(os.path.join(imagenet_cache_dir, f'cache_values_{shot_num}shots.pt'))
     run_tip_adapter_F(cfg, cache_keys, cache_values, test_features, test_labels, clip_weights, clip_model)
            
 

@@ -38,7 +38,7 @@ def run_tip_adapter(cfg, cache_keys, cache_values, test_features, test_labels, c
     tip_logits = clip_logits + cache_logits * alpha
     acc = cls_acc(tip_logits, test_labels)
     print("**** Tip-Adapter's test accuracy: {:.2f}. ****\n".format(acc))
-    with open('tip_imagenet.txt', 'w') as f:
+    with open('tip_imagenet.txt', 'a') as f:
         f.write(str(cfg['shots']))
         f.write(' ')
         f.write(str(acc))
@@ -108,7 +108,7 @@ def run_tip_adapter_F(cfg, cache_keys, cache_values, test_features, test_labels,
     
     adapter.weight = torch.load(cfg['cache_dir'] + "/best_F_" + str(cfg['shots']) + "shots.pt")
     print(f"**** After fine-tuning, Tip-Adapter-F's best test accuracy: {best_acc:.2f}, at epoch: {best_epoch}. ****\n")
-    with open('tipf_imagenet.txt', 'w') as f:
+    with open('tipf_imagenet.txt', 'a') as f:
         f.write(str(cfg['shots']))
         f.write(' ')
         f.write(str(acc))
